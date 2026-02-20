@@ -3,47 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <title>RescueLens AI - Kesiapsiagaan Bencana</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/models/mobilenet"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
-        #video-container { position: relative; width: 100%; max-width: 500px; margin: auto; }
-        #canvas { position: absolute; top: 0; left: 0; }
+        #video-container { position: relative; width: 100%; max-width: 500px; margin: auto; border: 4px solid #3b82f6; }
+        video { transform: scaleX(1); }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
     <header class="gradient-bg text-white p-6 text-center shadow-lg">
-        <h1 class="text-2xl font-bold">RESCUELENS AI</h1>
-        <p class="text-sm opacity-90">Deteksi Bahaya & Panduan Darurat Real-time</p>
+        <h1 class="text-2xl font-bold uppercase tracking-wider">RESCUELENS AI</h1>
+        <p class="text-sm opacity-90">Solusi Digital untuk Kesiapsiagaan Bencana</p>
     </header>
 
     <main class="p-4 max-w-2xl mx-auto">
         <section class="bg-white rounded-xl shadow-md p-4 mb-6 text-center">
             <h2 class="font-bold text-gray-700 mb-2">📸 AI Structural Scanner</h2>
-            <p class="text-xs text-gray-500 mb-4 font-semibold italic">Arahkan kamera ke dinding atau area terdampak</p>
+            <p class="text-xs text-gray-500 mb-4 font-semibold italic">Arahkan kamera ke area terdampak (Dinding/Tanah)</p>
             
-            <div id="video-container" class="rounded-lg overflow-hidden bg-black aspect-video">
+            <div id="video-container" class="rounded-lg overflow-hidden bg-black aspect-video flex items-center justify-center">
                 <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover"></video>
             </div>
             
-            <div id="status-box" class="mt-4 p-3 rounded-lg bg-gray-200">
-                <p id="prediction-text" class="font-bold text-lg text-blue-700 italic uppercase">Memulai AI...</p>
-                <p id="confidence-text" class="text-xs text-gray-600">Mohon tunggu...</p>
+            <div id="status-box" class="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                <p id="prediction-text" class="font-bold text-lg text-blue-700 italic">MENGINISIALISASI AI...</p>
+                <p id="confidence-text" class="text-xs text-gray-600">Menyiapkan sensor kamera...</p>
             </div>
         </section>
 
         <section class="bg-white rounded-xl shadow-md p-4">
-            <h2 class="font-bold text-gray-700 mb-4">💬 Panduan P3K & Evakuasi (AI Chat)</h2>
-            <div id="chat-box" class="h-48 overflow-y-auto border-b mb-4 p-2 text-sm bg-gray-50">
-                <div class="mb-2"><strong>AI:</strong> Apa kondisi darurat yang Anda hadapi? (Contoh: "Gempa", "Luka Bakar", "Banjir")</div>
+            <h2 class="font-bold text-gray-700 mb-4">💬 Asisten Darurat (Chatbot)</h2>
+            <div id="chat-box" class="h-48 overflow-y-auto border rounded-lg mb-4 p-3 text-sm bg-gray-50 flex flex-col gap-2">
+                <div class="bg-blue-100 p-2 rounded-lg self-start max-w-[80%] text-blue-800">
+                    <strong>AI:</strong> Halo! Apa kondisi darurat yang Anda alami? (Ketik: Gempa, Banjir, atau Luka)
+                </div>
             </div>
             <div class="flex gap-2">
-                <input type="text" id="user-input" placeholder="Tanyakan bantuan..." class="flex-1 border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="askAI()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Kirim</button>
+                <input type="text" id="user-input" placeholder="Tulis pesan..." class="flex-1 border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="askAI()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">KIRIM</button>
             </div>
         </section>
     </main>
@@ -54,66 +55,100 @@
         const predictionText = document.getElementById('prediction-text');
         const confidenceText = document.getElementById('confidence-text');
 
-        // 1. Load AI Model (MobileNet untuk Image Recognition)
-        async function loadModel() {
-            predictionText.innerText = "Memuat AI Model...";
-            model = await mobilenet.load();
-            predictionText.innerText = "Sistem Siap!";
-            startCamera();
+        // 1. Inisialisasi Model & Kamera
+        async function init() {
+            try {
+                predictionText.innerText = "MEMUAT MODEL AI...";
+                model = await mobilenet.load();
+                predictionText.innerText = "MODEL SIAP!";
+                
+                startCamera();
+            } catch (error) {
+                console.error(error);
+                predictionText.innerText = "GAGAL MEMUAT MODEL.";
+            }
         }
 
-        // 2. Akses Kamera
+        // 2. Fungsi Kamera Lebih Stabil
         async function startCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" }, 
-                audio: false 
-            });
-            video.srcObject = stream;
-            predictLoop();
+            const constraints = {
+                video: {
+                    facingMode: "environment", // Kamera belakang
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    predictionText.innerText = "MENGANALISIS...";
+                    predictLoop();
+                };
+            } catch (err) {
+                console.error("Kamera Error: ", err);
+                predictionText.innerText = "IZINKAN KAMERA!";
+                confidenceText.innerText = "Klik ikon gembok di browser untuk memberi izin.";
+            }
         }
 
-        // 3. Loop Prediksi Real-time
+        // 3. Deteksi Objek/Bahaya
         async function predictLoop() {
-            const predictions = await model.classify(video);
-            
-            if (predictions.length > 0) {
-                const topResult = predictions[0].className.toLowerCase();
-                const prob = Math.round(predictions[0].probability * 100);
+            if (model) {
+                const predictions = await model.classify(video);
+                
+                if (predictions.length > 0) {
+                    const topResult = predictions[0].className.toLowerCase();
+                    const score = predictions[0].probability;
 
-                // Logika deteksi bahaya (Custom mapping sederhana untuk demo)
-                if (topResult.includes('crack') || topResult.includes('wall') || topResult.includes('rubble')) {
-                    predictionText.innerText = "⚠️ POTENSI BAHAYA STRUKTUR";
-                    predictionText.className = "font-bold text-lg text-red-600";
-                } else {
-                    predictionText.innerText = "KONDISI TERPANTAU NORMAL";
-                    predictionText.className = "font-bold text-lg text-green-600";
+                    // Logika Analisis Bahaya
+                    const dangerKeywords = ['crack', 'wall', 'rubble', 'ruin', 'dirt', 'mud', 'rock'];
+                    const isDanger = dangerKeywords.some(keyword => topResult.includes(keyword));
+
+                    if (isDanger && score > 0.2) {
+                        predictionText.innerText = "⚠️ WASPADA: RISIKO STRUKTUR";
+                        predictionText.className = "font-bold text-lg text-red-600";
+                    } else {
+                        predictionText.innerText = "KONDISI TERPANTAU NORMAL";
+                        predictionText.className = "font-bold text-lg text-green-600";
+                    }
+                    
+                    confidenceText.innerText = `Terdeteksi: ${topResult} (${(score * 100).toFixed(1)}%)`;
                 }
-                confidenceText.innerText = `Akurasi Analisis: ${prob}% (${topResult})`;
             }
             requestAnimationFrame(predictLoop);
         }
 
-        // 4. Chatbot Logic (Simulasi NLP Darurat)
+        // 4. Chatbot Logic
         function askAI() {
-            const input = document.getElementById('user-input').value.toLowerCase();
+            const inputField = document.getElementById('user-input');
+            const input = inputField.value.trim().toLowerCase();
             const chatBox = document.getElementById('chat-box');
-            let response = "Maaf, tetap tenang. Hubungi 112. Coba tanya: 'Gempa' atau 'Luka'.";
+            if (!input) return;
+
+            let response = "Maaf, tetap tenang dan hubungi 112. Coba tanya: 'Gempa', 'Banjir', atau 'Patah Tulang'.";
 
             if (input.includes("gempa")) {
-                response = "Gunakan metode DROP, COVER, HOLD ON. Jauhi kaca dan benda tinggi.";
-            } else if (input.includes("luka") || input.includes("darah")) {
-                response = "Tekan area luka dengan kain bersih untuk menghentikan pendarahan.";
+                response = "Gunakan metode DROP (Berlutut), COVER (Lindungi kepala), HOLD ON (Berpegangan). Jauhi kaca.";
+            } else if (input.includes("luka") || input.includes("patah") || input.includes("darah")) {
+                response = "Jangan pindahkan korban kecuali dalam bahaya. Tekan luka luar untuk hentikan darah.";
             } else if (input.includes("banjir")) {
-                response = "Matikan listrik rumah, amankan dokumen, dan menuju ke titik kumpul tinggi.";
+                response = "Matikan aliran listrik segera. Amankan dokumen penting dan evakuasi ke tempat tinggi.";
+            } else if (input.includes("kebakaran")) {
+                response = "Merangkaklah di bawah asap. Gunakan kain basah untuk menutup hidung dan mulut.";
             }
 
-            chatBox.innerHTML += `<div class="mb-2 text-right"><strong>Anda:</strong> ${input}</div>`;
-            chatBox.innerHTML += `<div class="mb-2 text-blue-700"><strong>AI:</strong> ${response}</div>`;
-            document.getElementById('user-input').value = "";
+            // Tampilkan chat
+            chatBox.innerHTML += `<div class="bg-gray-200 p-2 rounded-lg self-end max-w-[80%] text-gray-800 font-semibold">${input}</div>`;
+            chatBox.innerHTML += `<div class="bg-blue-100 p-2 rounded-lg self-start max-w-[80%] text-blue-800"><strong>AI:</strong> ${response}</div>`;
+            
+            inputField.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        loadModel();
+        // Jalankan inisialisasi
+        init();
     </script>
 </body>
 </html>
