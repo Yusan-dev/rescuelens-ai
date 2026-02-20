@@ -1,0 +1,16 @@
+{
+  "name": "RescueLens AI",
+  "short_name": "RescueLens",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "description": "AI-Powered Disaster Preparedness App",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2555/2555572.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
